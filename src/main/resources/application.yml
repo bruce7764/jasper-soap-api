@@ -1,0 +1,11 @@
+# Spring settings
+spring:
+    profiles:
+        active: dev
+
+# Jasper settings
+jasper:
+    baseUrl: https://api.10646.cn/ws/service/
+    licenseKey: licenseKey
+    username: username
+    password: password

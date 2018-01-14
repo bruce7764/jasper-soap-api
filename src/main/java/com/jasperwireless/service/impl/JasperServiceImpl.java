@@ -21,8 +21,7 @@ import javax.xml.soap.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 中国联通物联网卡Jasper平台接口实现类
@@ -180,7 +179,71 @@ public class JasperServiceImpl implements JasperService {
     }
 
     @Override
-    public Map<String, Object> getDetailByICCID(String iccid) throws Exception {
+    public List<Map<String, String>> getSessionInfo(String iccid) throws Exception {
+        // Jasper平台soap api请求地址
+        String methodName = "GetSessionInfo";
+        String subPath = "terminal";
+        String url = baseUrl + subPath;
+
+        // 构建公共部分
+        SOAPMessage request = getRequest(subPath, methodName);
+        SOAPBodyElement requestBodyElement = getRequestBody(request, methodName);
+        SOAPEnvelope envelope = request.getSOAPPart().getEnvelope();
+
+        // 追加私有部分
+        Name iccidName = envelope.createName("iccid", PREFIX, NAMESPACE_URI);
+        SOAPElement iccidElement = requestBodyElement.addChildElement(iccidName);
+        iccidElement.setValue(iccid);
+
+        // 请求数据
+        SOAPConnection connection = getConnection();
+        SOAPMessage response = connection.call(request, url);
+        System.out.println("Response: ");
+        response.writeTo(System.out);
+        System.out.println("");
+        System.out.println("");
+
+        // 处理结果
+        SOAPBodyElement responseBodyElement = getResponsBody(response, methodName);
+        if(null == responseBodyElement) {
+            return null;
+        }
+        logger.info("Terminal Response [{}]", responseBodyElement.getTextContent());
+
+        // 搜寻数据节点
+        Name terminals = envelope.createName("sessionInfo", PREFIX, NAMESPACE_URI);
+        Name terminal = envelope.createName("session", PREFIX, NAMESPACE_URI);
+        Iterator itrParent = requestBodyElement.getChildElements(terminals);
+        if(itrParent.hasNext()) {
+            // 获得父节点信息
+            SOAPBodyElement terminalsElement = (SOAPBodyElement) itrParent.next();
+
+            // 封装数据并返回
+            Map<String, String> itemMap;
+            List<Map<String, String>> dataList = new ArrayList<>();
+            Iterator itr = terminalsElement.getChildElements(terminal);
+            SOAPBodyElement terminalElement;
+            NodeList list;
+            Node node;
+            while ( itr.hasNext()) {
+                terminalElement = (SOAPBodyElement) itr.next();
+                list = terminalElement.getChildNodes();
+
+                itemMap = new HashMap<>();
+                for (int i = 0; i < list.getLength(); i ++) {
+                    node = list.item(i);
+                    itemMap.put(node.getLocalName(), node.getTextContent());
+                }
+                dataList.add(itemMap);
+            }
+            return dataList;
+        }
+
+        return null;
+    }
+
+    @Override
+    public Map<String, String> getDetailByICCID(String iccid) throws Exception {
         // Jasper平台soap api请求地址
         String methodName = "GetTerminalDetails";
         String subPath = "terminal";
@@ -222,7 +285,7 @@ public class JasperServiceImpl implements JasperService {
 
         // 封装数据并返回
         Node node;
-        Map<String, Object> dataMap = new HashMap<>();
+        Map<String, String> dataMap = new HashMap<>();
         for (int i = 0; i < list.getLength(); i ++) {
             node = list.item(i);
             dataMap.put(node.getLocalName(), node.getTextContent());

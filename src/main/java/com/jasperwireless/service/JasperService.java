@@ -1,5 +1,6 @@
 package com.jasperwireless.service;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -11,10 +12,19 @@ import java.util.Map;
 public interface JasperService {
 
     /**
+     * 获得回话信息
+     *
+     * @param iccid 物联网卡ICCID
+     * @return
+     * @throws Exception
+     */
+    List<Map<String, String>> getSessionInfo(String iccid) throws Exception;
+
+    /**
      * 获得物联网卡详情
      *
      * @param iccid 物联网卡ICCID
      * @return
      */
-    Map<String, Object> getDetailByICCID(String iccid) throws Exception;
+    Map<String, String> getDetailByICCID(String iccid) throws Exception;
 }

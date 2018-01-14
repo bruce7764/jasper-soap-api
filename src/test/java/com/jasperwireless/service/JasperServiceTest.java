@@ -21,6 +21,11 @@ public class JasperServiceTest {
     protected JasperService jasperService;
 
     @Test
+    public void testGetSessionInfo() throws Exception {
+        System.out.println(new Gson().toJson(jasperService.getSessionInfo("8986061501000089113")));
+    }
+
+    @Test
     public void testGetDetailByICCID() throws Exception {
         System.out.println(new Gson().toJson(jasperService.getDetailByICCID("8986061501000089113")));
     }

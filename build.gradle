@@ -21,6 +21,7 @@ dependencies {
     compile fileTree(dir: 'libs' ,include : '*.jar')
 
     compile('com.google.code.gson:gson:2.8.+')
+    compile('org.apache.commons:commons-lang3:3.+')
 
     compile("org.springframework.boot:spring-boot-starter:1.5.+")
 

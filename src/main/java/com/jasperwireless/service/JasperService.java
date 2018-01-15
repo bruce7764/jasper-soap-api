@@ -38,4 +38,14 @@ public interface JasperService {
      * @return
      */
     Map<String, String> getDetailByICCID(String iccid) throws Exception;
+
+    /**
+     * 查询物联网卡指定日期用量
+     *
+     * @param iccid     物联网卡ICCID
+     * @param queryDate 查询日期
+     * @return
+     * @throws Exception
+     */
+    Map<String, String> getUsageByICCID(String iccid, Date queryDate) throws Exception;
 }

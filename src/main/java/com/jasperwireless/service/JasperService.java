@@ -26,7 +26,6 @@ public interface JasperService {
      *
      * @param sinceDate  指定日期
      * @param pageNumber 查询页码-默认1(备注：pageSize分页大小，默认1000，不能修改)
-     * @param
      * @return 如果totalPages>pageNumber，说明调整pageNumber参数继续查询下一页数据
      * @throws Exception
      */

@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
 /**
  * JasperServiceTest
  *
@@ -22,11 +25,17 @@ public class JasperServiceTest {
 
     @Test
     public void testGetSessionInfo() throws Exception {
-        System.out.println(new Gson().toJson(jasperService.getSessionInfo("8986061501000089113")));
+        System.out.println(new Gson().toJson(jasperService.getSessionInfo("8986061501000089136")));
+    }
+
+    @Test
+    public void testQueryTerminalList() throws Exception {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        System.out.println(new Gson().toJson(jasperService.queryTerminalList(dateFormat.parse("2015-05-15 00:00:00"), 1, 5)));
     }
 
     @Test
     public void testGetDetailByICCID() throws Exception {
-        System.out.println(new Gson().toJson(jasperService.getDetailByICCID("8986061501000089113")));
+        System.out.println(new Gson().toJson(jasperService.getDetailByICCID("8986061501000089136")));
     }
 }

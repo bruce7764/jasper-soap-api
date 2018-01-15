@@ -1,5 +1,6 @@
 package com.jasperwireless.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,17 @@ public interface JasperService {
      * @throws Exception
      */
     List<Map<String, String>> getSessionInfo(String iccid) throws Exception;
+
+    /**
+     * 获得指定日期之后的设备列表
+     *
+     * @param sinceDate  指定日期
+     * @param pageNumber 查询页码
+     * @param pageSize   分页大小
+     * @return
+     * @throws Exception
+     */
+    Map<String, Object> queryTerminalList(Date sinceDate, Integer pageNumber, Integer pageSize) throws Exception;
 
     /**
      * 获得物联网卡详情

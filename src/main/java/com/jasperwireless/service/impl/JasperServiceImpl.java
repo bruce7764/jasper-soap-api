@@ -21,6 +21,8 @@ import javax.xml.soap.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -81,7 +83,7 @@ public class JasperServiceImpl implements JasperService {
     /**
      * 获得请求对象
      *
-     * @param subPath 子路径
+     * @param subPath    子路径
      * @param methodName 方法名称
      * @return
      * @throws SOAPException
@@ -118,8 +120,7 @@ public class JasperServiceImpl implements JasperService {
             securityPolicyContent += "</xwss:SecurityConfiguration>";
             policyStream = new ByteArrayInputStream(securityPolicyContent.getBytes());
             processor = processorFactory.createProcessorForSecurityConfiguration(policyStream, callbackHandler);
-        }
-        finally {
+        } finally {
             if (policyStream != null) {
                 policyStream.close();
             }
@@ -137,7 +138,7 @@ public class JasperServiceImpl implements JasperService {
     /**
      * 获得请求Body对象
      *
-     * @param request 请求对象
+     * @param request    请求对象
      * @param methodName 方法名称
      * @return
      */
@@ -160,13 +161,13 @@ public class JasperServiceImpl implements JasperService {
     /**
      * 获得响应Body对象
      *
-     * @param response 相应对象
+     * @param response   相应对象
      * @param methodName 方法名称
      * @return
      * @throws SOAPException
      */
     public SOAPBodyElement getResponsBody(SOAPMessage response, String methodName) throws SOAPException {
-        if(response.getSOAPBody().hasFault()) {
+        if (response.getSOAPBody().hasFault()) {
             SOAPFault fault = response.getSOAPBody().getFault();
             System.err.println("Received SOAP Fault");
             System.err.println("SOAP Fault Code :" + fault.getFaultCode());
@@ -191,6 +192,7 @@ public class JasperServiceImpl implements JasperService {
         SOAPEnvelope envelope = request.getSOAPPart().getEnvelope();
 
         // 追加私有部分
+        // iccid
         Name iccidName = envelope.createName("iccid", PREFIX, NAMESPACE_URI);
         SOAPElement iccidElement = requestBodyElement.addChildElement(iccidName);
         iccidElement.setValue(iccid);
@@ -205,32 +207,32 @@ public class JasperServiceImpl implements JasperService {
 
         // 处理结果
         SOAPBodyElement responseBodyElement = getResponsBody(response, methodName);
-        if(null == responseBodyElement) {
+        if (null == responseBodyElement) {
             return null;
         }
         logger.info("Terminal Response [{}]", responseBodyElement.getTextContent());
 
         // 搜寻数据节点
-        Name terminals = envelope.createName("sessionInfo", PREFIX, NAMESPACE_URI);
-        Name terminal = envelope.createName("session", PREFIX, NAMESPACE_URI);
-        Iterator itrParent = requestBodyElement.getChildElements(terminals);
-        if(itrParent.hasNext()) {
+        Name sessionInfoName = envelope.createName("sessionInfo", PREFIX, NAMESPACE_URI);
+        Name sessionName = envelope.createName("session", PREFIX, NAMESPACE_URI);
+        Iterator itrParent = requestBodyElement.getChildElements(sessionInfoName);
+        if (itrParent.hasNext()) {
             // 获得父节点信息
             SOAPBodyElement terminalsElement = (SOAPBodyElement) itrParent.next();
 
             // 封装数据并返回
             Map<String, String> itemMap;
             List<Map<String, String>> dataList = new ArrayList<>();
-            Iterator itr = terminalsElement.getChildElements(terminal);
+            Iterator itr = terminalsElement.getChildElements(sessionName);
             SOAPBodyElement terminalElement;
             NodeList list;
             Node node;
-            while ( itr.hasNext()) {
+            while (itr.hasNext()) {
                 terminalElement = (SOAPBodyElement) itr.next();
                 list = terminalElement.getChildNodes();
 
                 itemMap = new HashMap<>();
-                for (int i = 0; i < list.getLength(); i ++) {
+                for (int i = 0; i < list.getLength(); i++) {
                     node = list.item(i);
                     itemMap.put(node.getLocalName(), node.getTextContent());
                 }
@@ -240,6 +242,83 @@ public class JasperServiceImpl implements JasperService {
         }
 
         return null;
+    }
+
+    @Override
+    public Map<String, Object> queryTerminalList(Date sinceDate, Integer pageNumber, Integer pageSize) throws Exception {
+        // 验证日期
+        if (null == sinceDate) {
+            throw new IllegalArgumentException("sinceDate can't be null");
+        }
+
+        // Jasper平台soap api请求地址
+        String methodName = "GetModifiedTerminals";
+        String subPath = "terminal";
+        String url = baseUrl + subPath;
+
+        // 构建公共部分
+        SOAPMessage request = getRequest(subPath, methodName);
+        SOAPBodyElement requestBodyElement = getRequestBody(request, methodName);
+        SOAPEnvelope envelope = request.getSOAPPart().getEnvelope();
+
+        // 追加私有部分
+        // since
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        Name sinceName = envelope.createName("since", PREFIX, NAMESPACE_URI);
+        SOAPElement sinceElement = requestBodyElement.addChildElement(sinceName);
+        sinceElement.setValue(dateFormat.format(sinceDate));
+        // pageNumber
+        /*if (null != pageNumber) {
+            Name pageNumberName = envelope.createName("pageNumber", PREFIX, NAMESPACE_URI);
+            SOAPElement pageNumberElement = requestBodyElement.addChildElement(pageNumberName);
+            pageNumberElement.setValue(String.valueOf(pageNumber));
+        }*/
+        // pageSize
+        /*if(null != pageSize) {
+            Name pageSizeName = envelope.createName("pageSize", PREFIX, NAMESPACE_URI);
+            SOAPElement pageSizeElement = requestBodyElement.addChildElement(pageSizeName);
+            pageSizeElement.setValue(String.valueOf(pageSize));
+        }*/
+
+        // 请求数据
+        SOAPConnection connection = getConnection();
+        SOAPMessage response = connection.call(request, url);
+        System.out.println("Response: ");
+        response.writeTo(System.out);
+        System.out.println("");
+        System.out.println("");
+
+        // 处理结果
+        SOAPBodyElement responseBodyElement = getResponsBody(response, methodName);
+        if (null == responseBodyElement) {
+            return null;
+        }
+        logger.info("Terminal Response [{}]", responseBodyElement.getTextContent());
+
+        // 搜寻数据节点
+        Name iccidsName = envelope.createName("iccids", PREFIX, NAMESPACE_URI);
+        Name totalPagesName = envelope.createName("totalPages", PREFIX, NAMESPACE_URI);
+        SOAPBodyElement iccidsElement = (SOAPBodyElement) responseBodyElement.getChildElements(iccidsName).next();
+        SOAPBodyElement totalPagesElement = (SOAPBodyElement) responseBodyElement.getChildElements(totalPagesName).next();
+
+        // 封装数据并返回
+        // list for iccids
+        Node node;
+        NodeList list = iccidsElement.getChildNodes();
+        Map<String, Object> dataMap = new HashMap<>();
+        List<String> iccidList = new ArrayList<>();
+        for (int i = 0; i < list.getLength(); i++) {
+            node = list.item(i);
+            iccidList.add(node.getTextContent());
+        }
+        dataMap.put("list", iccidList);
+
+        // total
+        if(0 < iccidList.size()) {
+            dataMap.put("total", Integer.valueOf(totalPagesElement.getTextContent()));
+        }
+
+        return dataMap;
     }
 
     @Override
@@ -255,8 +334,10 @@ public class JasperServiceImpl implements JasperService {
         SOAPEnvelope envelope = request.getSOAPPart().getEnvelope();
 
         // 追加私有部分
-        Name iccids = envelope.createName("iccids", PREFIX, NAMESPACE_URI);
-        SOAPElement iccidsElement = requestBodyElement.addChildElement(iccids);
+        // iccids
+        Name iccidsName = envelope.createName("iccids", PREFIX, NAMESPACE_URI);
+        SOAPElement iccidsElement = requestBodyElement.addChildElement(iccidsName);
+        // iccids->iccid
         Name iccidName = envelope.createName("iccid", PREFIX, NAMESPACE_URI);
         SOAPElement iccidElement = iccidsElement.addChildElement(iccidName);
         iccidElement.setValue(iccid);
@@ -271,22 +352,22 @@ public class JasperServiceImpl implements JasperService {
 
         // 处理结果
         SOAPBodyElement responseBodyElement = getResponsBody(response, methodName);
-        if(null == responseBodyElement) {
+        if (null == responseBodyElement) {
             return null;
         }
         logger.info("Terminal Response [{}]", responseBodyElement.getTextContent());
 
         // 搜寻数据节点
-        Name terminals = envelope.createName("terminals", PREFIX, NAMESPACE_URI);
-        Name terminal = envelope.createName("terminal", PREFIX, NAMESPACE_URI);
-        SOAPBodyElement terminalsElement = (SOAPBodyElement) responseBodyElement.getChildElements(terminals).next();
-        SOAPBodyElement terminalElement = (SOAPBodyElement) terminalsElement.getChildElements(terminal).next();
+        Name terminalsName = envelope.createName("terminals", PREFIX, NAMESPACE_URI);
+        Name terminalName = envelope.createName("terminal", PREFIX, NAMESPACE_URI);
+        SOAPBodyElement terminalsElement = (SOAPBodyElement) responseBodyElement.getChildElements(terminalsName).next();
+        SOAPBodyElement terminalElement = (SOAPBodyElement) terminalsElement.getChildElements(terminalName).next();
         NodeList list = terminalElement.getChildNodes();
 
         // 封装数据并返回
         Node node;
         Map<String, String> dataMap = new HashMap<>();
-        for (int i = 0; i < list.getLength(); i ++) {
+        for (int i = 0; i < list.getLength(); i++) {
             node = list.item(i);
             dataMap.put(node.getLocalName(), node.getTextContent());
         }

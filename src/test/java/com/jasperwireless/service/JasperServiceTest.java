@@ -31,7 +31,7 @@ public class JasperServiceTest {
     @Test
     public void testQueryTerminalList() throws Exception {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        System.out.println(new Gson().toJson(jasperService.queryTerminalList(dateFormat.parse("2015-05-15 00:00:00"), 1, 5)));
+        System.out.println(new Gson().toJson(jasperService.queryTerminalList(dateFormat.parse("2015-05-15 00:00:00"), 1)));
     }
 
     @Test

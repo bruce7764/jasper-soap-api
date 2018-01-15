@@ -245,7 +245,7 @@ public class JasperServiceImpl implements JasperService {
     }
 
     @Override
-    public Map<String, Object> queryTerminalList(Date sinceDate, Integer pageNumber, Integer pageSize) throws Exception {
+    public Map<String, Object> queryTerminalList(Date sinceDate, Integer pageNumber) throws Exception {
         // 验证日期
         if (null == sinceDate) {
             throw new IllegalArgumentException("sinceDate can't be null");
@@ -268,17 +268,12 @@ public class JasperServiceImpl implements JasperService {
         SOAPElement sinceElement = requestBodyElement.addChildElement(sinceName);
         sinceElement.setValue(dateFormat.format(sinceDate));
         // pageNumber
-        /*if (null != pageNumber) {
-            Name pageNumberName = envelope.createName("pageNumber", PREFIX, NAMESPACE_URI);
-            SOAPElement pageNumberElement = requestBodyElement.addChildElement(pageNumberName);
-            pageNumberElement.setValue(String.valueOf(pageNumber));
-        }*/
-        // pageSize
-        /*if(null != pageSize) {
-            Name pageSizeName = envelope.createName("pageSize", PREFIX, NAMESPACE_URI);
-            SOAPElement pageSizeElement = requestBodyElement.addChildElement(pageSizeName);
-            pageSizeElement.setValue(String.valueOf(pageSize));
-        }*/
+        if (null == pageNumber) {
+            pageNumber = 1;
+        }
+        Name pageNumberName = envelope.createName("pageNumber", PREFIX, NAMESPACE_URI);
+        SOAPElement pageNumberElement = requestBodyElement.addChildElement(pageNumberName);
+        pageNumberElement.setValue(String.valueOf(pageNumber));
 
         // 请求数据
         SOAPConnection connection = getConnection();
@@ -314,7 +309,7 @@ public class JasperServiceImpl implements JasperService {
         dataMap.put("list", iccidList);
 
         // total
-        if(0 < iccidList.size()) {
+        if (0 < iccidList.size()) {
             dataMap.put("total", Integer.valueOf(totalPagesElement.getTextContent()));
         }
 

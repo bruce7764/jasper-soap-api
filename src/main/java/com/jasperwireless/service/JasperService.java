@@ -40,10 +40,10 @@ public interface JasperService {
     Map<String, String> getDetailByICCID(String iccid) throws Exception;
 
     /**
-     * 查询物联网卡指定日期用量
+     * 查询物联网卡历史结账完月份使用情况(结账日每月27号凌晨)
      *
      * @param iccid     物联网卡ICCID
-     * @param queryDate 查询日期
+     * @param queryDate 查询日期，只能是历史月份
      * @return
      * @throws Exception
      */

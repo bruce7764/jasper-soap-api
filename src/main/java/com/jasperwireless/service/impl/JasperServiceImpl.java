@@ -387,7 +387,7 @@ public class JasperServiceImpl implements JasperService {
         }
 
         // Jasper平台soap api请求地址
-        String methodName = "GetTerminalUsageDataDetails";
+        String methodName = "GetTerminalUsage";
         String subPath = "billing";
         String url = baseUrl + subPath;
 
@@ -406,10 +406,6 @@ public class JasperServiceImpl implements JasperService {
         Name cycleStartDateName = envelope.createName("cycleStartDate", PREFIX, NAMESPACE_URI);
         SOAPElement cycleStartDateElement = requestBodyElement.addChildElement(cycleStartDateName);
         cycleStartDateElement.setValue(dateFormat.format(queryDate));
-        // pageNumber
-        Name pageNumberName = envelope.createName("pageNumber", PREFIX, NAMESPACE_URI);
-        SOAPElement pageNumberElement = requestBodyElement.addChildElement(pageNumberName);
-        pageNumberElement.setValue(String.valueOf(1));
 
         // 请求数据
         SOAPConnection connection = getConnection(request);
@@ -423,20 +419,16 @@ public class JasperServiceImpl implements JasperService {
         logger.info("Terminal Response [{}]", responseBodyElement.getTextContent());
 
         // 搜寻数据节点
-        /*Name terminalsName = envelope.createName("terminals", PREFIX, NAMESPACE_URI);
-        Name terminalName = envelope.createName("terminal", PREFIX, NAMESPACE_URI);
-        SOAPBodyElement terminalsElement = (SOAPBodyElement) responseBodyElement.getChildElements(terminalsName).next();
-        SOAPBodyElement terminalElement = (SOAPBodyElement) terminalsElement.getChildElements(terminalName).next();
-        NodeList list = terminalElement.getChildNodes();*/
+        NodeList list = responseBodyElement.getChildNodes();
 
         // 封装数据并返回
-        /*Node node;
+        Node node;
         Map<String, String> dataMap = new HashMap<>();
         for (int i = 0; i < list.getLength(); i++) {
             node = list.item(i);
             dataMap.put(node.getLocalName(), node.getTextContent());
-        }*/
+        }
 
-        return null;
+        return dataMap;
     }
 }

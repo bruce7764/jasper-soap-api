@@ -7,6 +7,7 @@ import com.sun.xml.wss.XWSSProcessorFactory;
 import com.sun.xml.wss.XWSSecurityException;
 import com.sun.xml.wss.impl.callback.PasswordCallback;
 import com.sun.xml.wss.impl.callback.UsernameCallback;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -72,10 +73,16 @@ public class JasperServiceImpl implements JasperService {
     /**
      * 获得连接对象
      *
+     * @param request 请求对象
      * @return
      * @throws SOAPException
+     * @throws IOException
      */
-    private SOAPConnection getConnection() throws SOAPException {
+    private SOAPConnection getConnection(SOAPMessage request) throws SOAPException, IOException {
+        System.out.println("Request: ");
+        request.writeTo(System.out);
+        System.out.println("");
+        System.out.println("");
         SOAPConnectionFactory connectionFactory = SOAPConnectionFactory.newInstance();
         return connectionFactory.createConnection();
     }
@@ -127,10 +134,6 @@ public class JasperServiceImpl implements JasperService {
         }
         ProcessingContext context = processor.createProcessingContext(request);
         request = processor.secureOutboundMessage(context);
-        System.out.println("Request: ");
-        request.writeTo(System.out);
-        System.out.println("");
-        System.out.println("");
 
         return request;
     }
@@ -166,7 +169,11 @@ public class JasperServiceImpl implements JasperService {
      * @return
      * @throws SOAPException
      */
-    public SOAPBodyElement getResponsBody(SOAPMessage response, String methodName) throws SOAPException {
+    public SOAPBodyElement getResponseBody(SOAPMessage response, String methodName) throws SOAPException, IOException {
+        System.out.println("Response: ");
+        response.writeTo(System.out);
+        System.out.println("");
+        System.out.println("");
         if (response.getSOAPBody().hasFault()) {
             SOAPFault fault = response.getSOAPBody().getFault();
             System.err.println("Received SOAP Fault");
@@ -181,6 +188,11 @@ public class JasperServiceImpl implements JasperService {
 
     @Override
     public List<Map<String, String>> getSessionInfo(String iccid) throws Exception {
+        // 校验ICCID
+        if (StringUtils.isBlank(iccid)) {
+            throw new IllegalArgumentException("iccid can't be null");
+        }
+
         // Jasper平台soap api请求地址
         String methodName = "GetSessionInfo";
         String subPath = "terminal";
@@ -198,15 +210,11 @@ public class JasperServiceImpl implements JasperService {
         iccidElement.setValue(iccid);
 
         // 请求数据
-        SOAPConnection connection = getConnection();
+        SOAPConnection connection = getConnection(request);
         SOAPMessage response = connection.call(request, url);
-        System.out.println("Response: ");
-        response.writeTo(System.out);
-        System.out.println("");
-        System.out.println("");
 
         // 处理结果
-        SOAPBodyElement responseBodyElement = getResponsBody(response, methodName);
+        SOAPBodyElement responseBodyElement = getResponseBody(response, methodName);
         if (null == responseBodyElement) {
             return null;
         }
@@ -246,7 +254,7 @@ public class JasperServiceImpl implements JasperService {
 
     @Override
     public Map<String, Object> queryTerminalList(Date sinceDate, Integer pageNumber) throws Exception {
-        // 验证日期
+        // 校验日期
         if (null == sinceDate) {
             throw new IllegalArgumentException("sinceDate can't be null");
         }
@@ -276,15 +284,11 @@ public class JasperServiceImpl implements JasperService {
         pageNumberElement.setValue(String.valueOf(pageNumber));
 
         // 请求数据
-        SOAPConnection connection = getConnection();
+        SOAPConnection connection = getConnection(request);
         SOAPMessage response = connection.call(request, url);
-        System.out.println("Response: ");
-        response.writeTo(System.out);
-        System.out.println("");
-        System.out.println("");
 
         // 处理结果
-        SOAPBodyElement responseBodyElement = getResponsBody(response, methodName);
+        SOAPBodyElement responseBodyElement = getResponseBody(response, methodName);
         if (null == responseBodyElement) {
             return null;
         }
@@ -318,6 +322,11 @@ public class JasperServiceImpl implements JasperService {
 
     @Override
     public Map<String, String> getDetailByICCID(String iccid) throws Exception {
+        // 校验ICCID
+        if (StringUtils.isBlank(iccid)) {
+            throw new IllegalArgumentException("iccid can't be null");
+        }
+
         // Jasper平台soap api请求地址
         String methodName = "GetTerminalDetails";
         String subPath = "terminal";
@@ -338,15 +347,11 @@ public class JasperServiceImpl implements JasperService {
         iccidElement.setValue(iccid);
 
         // 请求数据
-        SOAPConnection connection = getConnection();
+        SOAPConnection connection = getConnection(request);
         SOAPMessage response = connection.call(request, url);
-        System.out.println("Response: ");
-        response.writeTo(System.out);
-        System.out.println("");
-        System.out.println("");
 
         // 处理结果
-        SOAPBodyElement responseBodyElement = getResponsBody(response, methodName);
+        SOAPBodyElement responseBodyElement = getResponseBody(response, methodName);
         if (null == responseBodyElement) {
             return null;
         }
@@ -358,6 +363,63 @@ public class JasperServiceImpl implements JasperService {
         SOAPBodyElement terminalsElement = (SOAPBodyElement) responseBodyElement.getChildElements(terminalsName).next();
         SOAPBodyElement terminalElement = (SOAPBodyElement) terminalsElement.getChildElements(terminalName).next();
         NodeList list = terminalElement.getChildNodes();
+
+        // 封装数据并返回
+        Node node;
+        Map<String, String> dataMap = new HashMap<>();
+        for (int i = 0; i < list.getLength(); i++) {
+            node = list.item(i);
+            dataMap.put(node.getLocalName(), node.getTextContent());
+        }
+
+        return dataMap;
+    }
+
+    @Override
+    public Map<String, String> getUsageByICCID(String iccid, Date queryDate) throws Exception {
+        // 校验ICCID
+        if (StringUtils.isBlank(iccid)) {
+            throw new IllegalArgumentException("iccid can't be null");
+        }
+        // 校验日期
+        if (null == queryDate) {
+            throw new IllegalArgumentException("queryDate can't be null");
+        }
+
+        // Jasper平台soap api请求地址
+        String methodName = "GetTerminalUsage";
+        String subPath = "billing";
+        String url = baseUrl + subPath;
+
+        // 构建公共部分
+        SOAPMessage request = getRequest(subPath, methodName);
+        SOAPBodyElement requestBodyElement = getRequestBody(request, methodName);
+        SOAPEnvelope envelope = request.getSOAPPart().getEnvelope();
+
+        // 追加私有部分
+        // iccids
+        Name iccidName = envelope.createName("iccid", PREFIX, NAMESPACE_URI);
+        SOAPElement iccidsElement = requestBodyElement.addChildElement(iccidName);
+        iccidsElement.setValue(iccid);
+        // cycleStartDate
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'Z'");
+        Name cycleStartDateName = envelope.createName("cycleStartDate", PREFIX, NAMESPACE_URI);
+        SOAPElement cycleStartDateElement = requestBodyElement.addChildElement(cycleStartDateName);
+        cycleStartDateElement.setValue(dateFormat.format(queryDate));
+
+        // 请求数据
+        SOAPConnection connection = getConnection(request);
+        SOAPMessage response = connection.call(request, url);
+
+        // 处理结果
+        SOAPBodyElement responseBodyElement = getResponseBody(response, methodName);
+        if (null == responseBodyElement) {
+            return null;
+        }
+        logger.info("Terminal Response [{}]", responseBodyElement.getTextContent());
+
+        // 搜寻数据节点
+        NodeList list = responseBodyElement.getChildNodes();
 
         // 封装数据并返回
         Node node;

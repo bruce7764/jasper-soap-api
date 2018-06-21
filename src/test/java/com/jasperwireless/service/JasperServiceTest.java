@@ -25,7 +25,7 @@ public class JasperServiceTest {
 
     @Test
     public void testGetSessionInfo() throws Exception {
-        System.out.println(new Gson().toJson(jasperService.getSessionInfo("8986061501000089136")));
+        System.out.println(new Gson().toJson(jasperService.getSessionInfo("89860617010001692487")));
     }
 
     @Test
@@ -36,6 +36,12 @@ public class JasperServiceTest {
 
     @Test
     public void testGetDetailByICCID() throws Exception {
-        System.out.println(new Gson().toJson(jasperService.getDetailByICCID("8986061501000089136")));
+        System.out.println(new Gson().toJson(jasperService.getDetailByICCID("89860617010001692487")));
+    }
+
+    @Test
+    public void testGetUsageByICCID() throws Exception {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        System.out.println(new Gson().toJson(jasperService.getUsageByICCID("89860617010001692487", dateFormat.parse("2018-01-15"))));
     }
 }
